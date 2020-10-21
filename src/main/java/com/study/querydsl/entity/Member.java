@@ -1,12 +1,13 @@
 package com.study.querydsl.entity;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
 
 @Entity
 @Getter @Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@ToString(of = {"id","username","age"}) // 무한루프탈수도있어서 연관관계는 하지 않는다
 public class Member {
     @Id @GeneratedValue
     @Column(name="member_id")
@@ -17,6 +18,17 @@ public class Member {
     @ManyToOne(fetch = FetchType.LAZY) // fetchtype 신경써야함
     @JoinColumn(name="team_id")
     private Team team;
+
+    public Member(String username) {
+        this.username = username;
+        this.age = 0;
+    }
+
+    public Member(String username, int age) {
+        this.username = username;
+        this.age = 0;
+        this.team = null;
+    }
 
     public Member(String username, int age, Team team) {
         this.username = username;
