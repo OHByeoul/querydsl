@@ -23,8 +23,11 @@ public class QuerydslBasicTest {
     @Autowired
     EntityManager em;
 
+    JPAQueryFactory queryFactory;
+
     @BeforeEach
     public void before(){
+        queryFactory = new JPAQueryFactory(em);
         Team teamA = new Team("teamA");
         Team teamB = new Team("teamB");
         em.persist(teamA);
@@ -52,8 +55,9 @@ public class QuerydslBasicTest {
 
     @Test
     public void startQuerydsl(){
-        JPAQueryFactory queryFactory = new JPAQueryFactory(em);
+
         QMember m = new QMember("m");
+
 
         Member findMember = queryFactory
                 .select(m)
@@ -62,7 +66,33 @@ public class QuerydslBasicTest {
                 .fetchOne();
 
         assertThat(findMember.getUsername()).isEqualTo("member1");
+    }
 
+    @Test
+    public void search(){
+        QMember member = new QMember("m");
 
+        Member findMember = queryFactory
+                .selectFrom(member)
+                .where(member.username.eq("member1")
+                    .and(member.age.between(10,30)))
+                .fetchOne();
+
+        assertThat(findMember.getUsername()).isEqualTo("member1");
+    }
+
+    @Test
+    public void searchAndParam(){
+        QMember member = new QMember("m");
+
+        Member findMember = queryFactory
+                .selectFrom(member)
+                .where(
+                        member.username.eq("member1"),
+                        member.age.between(10,30)
+                )
+                .fetchOne();
+
+        assertThat(findMember.getUsername()).isEqualTo("member1");
     }
 }
