@@ -16,6 +16,7 @@ import javax.persistence.EntityManager;
 
 import java.util.List;
 
+import static com.study.querydsl.entity.QMember.member;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -102,7 +103,7 @@ public class QuerydslBasicTest {
     @Test
     public void resultFetch(){
         List<Member> fetch = queryFactory
-                .selectFrom(QMember.member)
+                .selectFrom(member)
                 .fetch();
 
 //        Member fetchOne = queryFactory
@@ -110,22 +111,43 @@ public class QuerydslBasicTest {
 //                .fetchOne();
 
         Member fetchFirst = queryFactory
-                .selectFrom(QMember.member)
+                .selectFrom(member)
                 .fetchFirst();
 
         queryFactory
-                .selectFrom(QMember.member)
+                .selectFrom(member)
                 .fetchResults();
 
         QueryResults<Member> results = queryFactory
-                .selectFrom(QMember.member)
+                .selectFrom(member)
                 .fetchResults();
         
         results.getTotal();
         List<Member> content = results.getResults();
 
         long total = queryFactory
-                .selectFrom(QMember.member)
+                .selectFrom(member)
                 .fetchCount();
+    }
+
+    @Test
+    public void sort(){
+        em.persist(new Member(null,100));
+        em.persist(new Member("member5",100));
+        em.persist(new Member("member6",100));
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.eq(100))
+                .orderBy(member.age.desc(), member.username.asc().nullsLast())
+                .fetch();
+
+        Member member1 = result.get(0);
+        Member member2 = result.get(0);
+        Member memberNull = result.get(0);
+
+        assertThat(member1.getUsername()).isEqualTo("member5");
+        assertThat(member2.getUsername()).isEqualTo("member5");
+        assertThat(memberNull.getUsername()).isNull();
     }
 }
