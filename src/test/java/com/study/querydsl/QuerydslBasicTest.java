@@ -1,9 +1,11 @@
 package com.study.querydsl;
 
 import com.querydsl.core.QueryResults;
+import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.study.querydsl.entity.Member;
 import com.study.querydsl.entity.QMember;
+import com.study.querydsl.entity.QTeam;
 import com.study.querydsl.entity.Team;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -176,5 +178,61 @@ public class QuerydslBasicTest {
         assertThat(queryResults.getLimit()).isEqualTo(2);
         assertThat(queryResults.getOffset()).isEqualTo(1);
         assertThat(queryResults.getResults().size()).isEqualTo(2);
+    }
+
+    @Test
+    public void aggregation(){
+        List<Tuple> result = queryFactory
+                .select(
+                        member.count(),
+                        member.age.sum(),
+                        member.age.avg(),
+                        member.age.max(),
+                        member.age.min()
+                )
+                .from(member)
+                .fetch();
+
+        Tuple tuple = result.get(0);
+        assertThat(tuple.get(member.count())).isEqualTo(4);
+        assertThat(tuple.get(member.age.sum())).isEqualTo(40);
+
+    }
+
+    /**
+     * 팀 이름과 각팀의 평균 연령은??
+     */
+    @Test
+    public void group(){
+        List<Tuple> result = queryFactory
+                .select(QTeam.team.name, member.age.avg())
+                .from(member)
+                .join(member.team, QTeam.team)
+                .groupBy(QTeam.team.name)
+                .fetch();
+
+        Tuple team1 = result.get(0);
+        Tuple team2 = result.get(1);
+
+        assertThat(team1.get(QTeam.team.name)).isEqualTo("teamA");
+        assertThat(team1.get(member.age.avg())).isEqualTo(10);
+    }
+
+    /**
+     * 팀 a에 소속된 모든 회원은?
+     */
+    @Test
+    public void join(){
+        List<Member> teamA = queryFactory
+                .selectFrom(member)
+                .join(member.team, QTeam.team)
+                .where(QTeam.team.name.eq("teamA"))
+                .fetch();
+
+        assertThat(teamA.size()).isEqualTo(2);
+        assertThat(teamA)
+                .extracting("username")
+                .contains("member1","member2");
+
     }
 }
