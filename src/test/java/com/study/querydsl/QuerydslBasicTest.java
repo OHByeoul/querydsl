@@ -235,4 +235,23 @@ public class QuerydslBasicTest {
                 .contains("member1","member2");
 
     }
+
+    /**
+     * 세타조인
+     */
+    @Test
+    public void thetaJoin(){
+        em.persist(new Member("teamA"));
+        em.persist(new Member("teamB"));
+
+        List<Member> result = queryFactory
+                .select(member)
+                .from(member, QTeam.team)
+                .where(member.username.eq(QTeam.team.name))
+                .fetch();
+
+        assertThat(result)
+                .extracting("username")
+                .containsExactly("teamA","teamB");
+    }
 }
