@@ -254,4 +254,22 @@ public class QuerydslBasicTest {
                 .extracting("username")
                 .containsExactly("teamA","teamB");
     }
+
+    /*
+    *  회원과 팀을 조인하는데 팀이 a인팀만 조인 회원은 모두 조회
+     */
+    @Test
+    public void leftJoin(){
+        List<Tuple> result = queryFactory
+                .select(member, QTeam.team)
+                .from(member)
+                .leftJoin(member.team, QTeam.team)
+                .on(QTeam.team.name.eq("teamA"))
+                .fetch();
+
+        for (Tuple tuple : result) {
+            System.out.println("tuple = " + tuple);
+        }
+        assertThat(result.size()).isEqualTo(4);
+    }
 }
