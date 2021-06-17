@@ -350,4 +350,57 @@ public class QuerydslBasicTest {
         assertThat(result).extracting("age")
                 .containsExactly(30);
     }
+
+    /*
+     * 나이가 가장 많은 회원 조회
+     * */
+    @Test
+    public void subQueryGoe(){
+        QMember memsub = new QMember("memsub");
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.goe(
+                        JPAExpressions
+                                .select(memsub.age.avg())
+                                .from(memsub)
+                ))
+                .fetch();
+
+        assertThat(result).extracting("age")
+                .containsExactly(30);
+    }
+
+    @Test
+    public void subQueryIn(){
+        QMember submem = new QMember("submem");
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.in(
+                        JPAExpressions
+                                .select(submem.age)
+                                .from(submem)
+                                .where(submem.age.gt(10))
+                ))
+                .fetch();
+
+        assertThat(result).extracting("age")
+                .containsExactly(30);
+    }
+
+    @Test
+    public void selectSubq(){
+        QMember submem = new QMember("submem");
+
+        List<Tuple> result = queryFactory
+                .select(member.username,
+                        JPAExpressions
+                                .select(submem.age.avg())
+                                .from(submem)
+                ).from(submem)
+                .fetch();
+
+
+    }
 }
