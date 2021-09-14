@@ -2,6 +2,9 @@ package com.study.querydsl;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Expression;
+import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.study.querydsl.entity.Member;
@@ -336,19 +339,22 @@ public class QuerydslBasicTest {
     * */
     @Test
     public void subQuery(){
-        QMember memsub = new QMember("memsub"); //서브쿼리 경우 기존쓰던 것과 다른 객체 생성해줘야됨
+        QMember memSub = new QMember("memSub");
 
         List<Member> result = queryFactory
-                .selectFrom(member)
+                .select(member)
+                .from(member)
                 .where(member.age.eq(
                         JPAExpressions
-                                .select(memsub.age.max())
-                                .from(memsub)
+                                .select(memSub.age.max())
+                                .from(memSub)
+
                 ))
                 .fetch();
 
         assertThat(result).extracting("age")
                 .containsExactly(30);
+
     }
 
     /*
@@ -401,6 +407,90 @@ public class QuerydslBasicTest {
                 ).from(submem)
                 .fetch();
 
+    }
+
+    @Test
+    public void basicCase(){
+        List<String> fetch = queryFactory
+                .select(member.age
+                        .when(10).then("tttt")
+                        .when(20).then("twen")
+                        .otherwise("other")
+                )
+                .from(member)
+                .fetch();
+
+        for(String s : fetch){
+            System.out.println("fetch = " + s);
+        }
+    }
+
+    @Test
+    public void complexCase(){
+        List<String> fetch = queryFactory
+                .select(new CaseBuilder()
+                        .when(member.age.between(0, 30)).then("0~30333")
+                        .when(member.age.between(31, 60)).then("31~60")
+                        .otherwise("ow")
+                )
+                .from(member)
+                .fetch();
+
+        for(String s : fetch){
+            System.out.println("fetch = " + s);
+        }
+    }
+
+    @Test
+    public void constant(){
+        List<Tuple> result = queryFactory
+                .select(member.username, Expressions.constant("A"))
+                .from(member)
+                .fetch();
+
+        for(Tuple tuple : result) {
+            System.out.println("tuple = " + tuple);
+        }
+    }
+
+    @Test
+    public void concat(){
+        List<String> fetch = queryFactory
+                .select(member.username.concat("_").concat(member.age.stringValue()))
+                .from(member)
+                .where(member.username.eq("member1"))
+                .fetch();
+
+        for(String s : fetch) {
+            System.out.println("s = " + s);
+        }
+    }
+
+    @Test
+    public void simpleProjection(){
+        List<String> fetch = queryFactory
+                .select(member.username)
+                .from(member)
+                .fetch();
+
+        for (String s : fetch) {
+            System.out.println("s = " + s);
+        }
+    }
+
+    @Test
+    public void tupleProjection(){
+        List<Tuple> fetch = queryFactory
+                .select(member.username, member.age)
+                .from(member)
+                .fetch();
+
+        for (Tuple tuple : fetch) {
+            String username = tuple.get(member.username);
+            Integer age = tuple.get(member.age);
+        }
 
     }
+
+
 }
