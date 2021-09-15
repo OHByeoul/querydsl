@@ -1,12 +1,19 @@
 package com.study.querydsl;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Expression;
+import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.study.querydsl.dto.MemberDto;
+import com.study.querydsl.dto.QMemberDto;
+import com.study.querydsl.dto.QUserDto;
+import com.study.querydsl.dto.UserDto;
 import com.study.querydsl.entity.Member;
 import com.study.querydsl.entity.QMember;
 import com.study.querydsl.entity.QTeam;
@@ -492,5 +499,116 @@ public class QuerydslBasicTest {
 
     }
 
+    @Test
+    public void findDtoByJPQL(){
+        List<MemberDto> resultList = em.createQuery("select new com.study.querydsl.dto.MemberDto(m.username, m.age) from Member m", MemberDto.class)
+                .getResultList();
 
+        for (MemberDto memberDto : resultList) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+
+    @Test
+    public void findDtoBySetter(){
+        List<MemberDto> fetch = queryFactory
+                .select(Projections.bean(MemberDto.class,
+                        member.username,
+                        member.age))
+                .from(member)
+                .fetch();
+
+        for (MemberDto memberDto : fetch) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+
+    @Test
+    public void findDtoByField(){
+        List<UserDto> fetch = queryFactory
+                .select(Projections.fields(UserDto.class,
+                        ExpressionUtils.as(member.username,"name"),
+                        member.age
+                ))
+                .from(member)
+                .fetch();
+
+        for (UserDto userDto : fetch) {
+            System.out.println("userDto = " + userDto);
+        }
+    }
+
+    @Test
+    public void findDtobyconstructor(){
+        List<UserDto> name = queryFactory
+                .select(Projections.constructor(UserDto.class,
+                        ExpressionUtils.as(member.username, "name"),
+                        member.age
+                ))
+                .from(member)
+                .fetch();
+
+        for (UserDto userDto : name) {
+            System.out.println("userDto = " + userDto);
+        }
+
+    }
+
+    @Test
+    public void findUserDtoByField(){
+        QMember memSub = new QMember("memSub");
+
+        List<UserDto> fetch = queryFactory
+                .select(Projections.fields(UserDto.class,
+                        member.username,
+                        ExpressionUtils.as(JPAExpressions.select(member.age.avg())
+                                .from(memSub),"age")
+                ))
+                .from(member)
+                .fetch();
+
+        for (UserDto userDto : fetch) {
+            System.out.println("userDto = " + userDto);
+        }
+    }
+
+    @Test
+    public void findDtoByProjection(){
+        List<MemberDto> fetch = queryFactory
+                .select(new QMemberDto(member.username, member.age))
+                .from(member)
+                .fetch();
+
+        for (MemberDto memberDto : fetch) {
+            System.out.println("QMemberDto = " + memberDto);
+        }
+    }
+
+    @Test
+    public void booleanBuilderPrac(){
+        String nameParam = "member1";
+        Integer ageParam = 10;
+
+        List<Member> result = searchParam(nameParam,ageParam);
+        assertThat(result.get(0).getAge()).isEqualTo(10);
+    }
+
+    private List<Member> searchParam(String nameParam, Integer ageParam) {
+        BooleanBuilder builder = new BooleanBuilder();
+
+        if(nameParam != null){
+            builder.and(member.username.eq(nameParam));
+        }
+
+        if (ageParam != null) {
+            builder.and(member.age.eq(ageParam));
+        }
+
+        List<Member> fetch = queryFactory
+                .select(member)
+                .from(member)
+                .where(builder)
+                .fetch();
+        return fetch;
+    }
 }
