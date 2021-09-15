@@ -5,7 +5,9 @@ import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
@@ -23,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Commit;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
@@ -610,5 +613,96 @@ public class QuerydslBasicTest {
                 .where(builder)
                 .fetch();
         return fetch;
+    }
+
+    @Test
+    public void dynamicWhereParam(){
+        String userParam = "member1";
+        Integer ageParam = 10;
+
+        List<Member> result = searchMem2(userParam,ageParam);
+        assertThat(result.get(0).getAge()).isEqualTo(10);
+    }
+
+    private List<Member> searchMem2(String userParam, Integer ageParam) {
+        return queryFactory
+                .selectFrom(member)
+                .where(allEq(userParam, ageParam))
+                .fetch();
+    }
+
+    private BooleanBuilder usernameEq(String userParam) {
+        if (userParam != null) {
+            return new BooleanBuilder();
+        }
+        return new BooleanBuilder(member.username.eq(userParam));
+    }
+
+    private BooleanBuilder ageEq(Integer ageParam) {
+        return ageParam != null ? new BooleanBuilder(member.age.eq(ageParam)) : new BooleanBuilder();
+    }
+
+    private BooleanBuilder allEq(String userParam, Integer ageParam){
+        return usernameEq(userParam).and(ageEq(ageParam));
+    }
+
+    /*
+    * 벌크연산
+    * */
+    @Test
+    public void bulk(){
+
+        long count = queryFactory
+                .update(member)
+                .set(member.username, "rrr")
+                .where(member.age.lt(25))
+                .execute();
+
+        List<Member> fetch = queryFactory
+                .selectFrom(member)
+                .where(member.age.lt(25))
+                .fetch();
+
+        for (Member m : fetch) {
+            System.out.println("m = " + m);
+        }
+    }
+
+    @Test
+    public void bulkAdd(){
+        long execute = queryFactory
+                .update(member)
+                .set(member.age, member.age.add(3))
+                .where(member.age.lt(25))
+                .execute();
+
+        em.flush();
+        em.clear();
+
+        List<Member> fetch = queryFactory
+                .selectFrom(member)
+                .where(member.age.lt(25))
+                .fetch();
+
+        assertThat(fetch.size()).isEqualTo(3);
+    }
+
+    @Test
+    public void bulkDelete(){
+        long execute = queryFactory
+                .delete(member)
+                .where(member.age.gt(25))
+                .execute();
+
+        em.flush();
+        em.clear();
+
+        List<Member> fetch = queryFactory
+                .selectFrom(member)
+                .where(member.age.gt(25))
+                .fetch();
+
+        assertThat(fetch.size()).isEqualTo(0);
+
     }
 }
