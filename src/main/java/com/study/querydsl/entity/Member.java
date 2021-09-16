@@ -15,7 +15,7 @@ public class Member {
     private String username;
     private int age;
 
-    @ManyToOne(fetch = FetchType.LAZY) // fetchtype 신경써야함
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL) // fetchtype 신경써야함
     @JoinColumn(name="team_id")
     private Team team;
 
@@ -26,7 +26,7 @@ public class Member {
 
     public Member(String username, int age) {
         this.username = username;
-        this.age = 0;
+        this.age = age;
         this.team = null;
     }
 
